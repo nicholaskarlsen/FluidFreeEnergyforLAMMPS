@@ -258,15 +258,37 @@ void PairVashishta::settings(int narg, char **/*arg*/)
 
 void PairVashishta::coeff(int narg, char **arg)
 {
-  // NOTE: Some changes related to fscale are likely required here
+  int n;
+
   if (!allocated) allocate();
 
+  // NOTE: Possibly need to change map_element2type?
   map_element2type(narg-3,arg+3);
 
   // read potential file and initialize potential parameters
 
   read_file(arg[2]);
   setup_params();
+
+  // clear setflag since coeff() called once with I,J = * *
+
+  n = atom->ntypes;
+  for (int i = 1; i <= n; i++)
+    for (int j = i; j <= n; j++)
+      setflag[i][j] = 0;
+
+  // set setflag i,j for type pairs where both are mapped to elements
+
+  int count = 0;
+  for (int i = 1; i <= n; i++)
+    for (int j = i; j <= n; j++)
+      if (map[i] >= 0 && map[j] >= 0) {
+        fscale[i][j] = 1.0;
+        setflag[i][j] = 1;
+        count++;
+      }
+
+  if (count == 0) error->all(FLERR,"Incorrect args for pair coefficients");
 }
 
 /* ----------------------------------------------------------------------
